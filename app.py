@@ -1,47 +1,44 @@
 import joblib
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
-from imblearn.pipeline import Pipeline as ImbPipeline
-from imblearn.over_sampling import SMOTE
+import dash
+from dash import html, dcc, Input, Output
+import plotly.express as px
+import plotly.graph_objects as go
+from sklearn.metrics import confusion_matrix
 
+# Cargar el modelo entrenado
+modelo = joblib.load("student_performance.joblib")
 
+# Cargar el dataset limpio con variable final_score
+df = pd.read_csv("student_performance_with_final_score.csv")
 
-# Cargar el modelo con extensión .joblib
-modelo = joblib.load('student_performance.joblib')
-
-
-# Cargar dataset
-df = pd.read_csv("student_performance.csv")
-
-# Columnas predictoras
-columnas_entrada = [col for col in df.columns if col != "pass"]
+# Columnas de entrada (sin la variable objetivo)
+columnas_entrada = [col for col in df.columns if col != "final_score"]
 X = df[columnas_entrada]
-y = df["pass"]
+y = df["final_score"]
 
 # Inicializar app
 app = dash.Dash(__name__)
-app.title = "POC: Predicción de Rendimiento Estudiantil"
+app.title = "Predicción de Rendimiento Estudiantil"
 
 # Layout
 app.layout = html.Div([
-    html.H1("Prueba de Concepto: Clasificación del Rendimiento Estudiantil", style={'textAlign': 'center'}),
-    
-    html.H2("Visualización del Dataset"),
-    dcc.Graph(figure=px.histogram(df, x="age", color="pass", barmode="group", title="Distribución de edad según resultado")),
+    html.H1("Predicción del Rendimiento Estudiantil", style={'textAlign': 'center'}),
 
-    html.H2("Formulario para predicción individual"),
+    html.H2("Visualización del Dataset"),
+    dcc.Graph(
+        figure=px.histogram(df, x="age", color="final_score", barmode="group",
+                            title="Distribución de edad según desempeño final")
+    ),
+
+    html.H2("Formulario para Predicción Individual"),
     html.Div(
         children=[
             html.Div([
                 html.Label(f"{col}:"),
                 dcc.Input(
                     id=f"input-{col}",
-                    type="number" if df[col].dtype != "object" else "text",
+                    type="number" if pd.api.types.is_numeric_dtype(df[col]) else "text",
                     value=0,
                     debounce=True
                 )
@@ -49,16 +46,16 @@ app.layout = html.Div([
         ],
         style={'columnCount': 2}
     ),
-    
+
     html.Br(),
     html.Button("Predecir", id="btn-predict", n_clicks=0),
     html.Div(id="output-prediction", style={"marginTop": 20, "fontWeight": "bold"}),
 
-    html.H2("Matriz de Confusión (modelo entrenado)"),
+    html.H2("Matriz de Confusión del Modelo"),
     dcc.Graph(id="conf-matrix")
 ])
 
-# Callback predicción
+# Callback de predicción
 @app.callback(
     Output("output-prediction", "children"),
     Input("btn-predict", "n_clicks"),
@@ -69,27 +66,28 @@ def hacer_prediccion(n_clicks, *valores):
         return ""
     entrada = pd.DataFrame([valores], columns=columnas_entrada)
     pred = modelo.predict(entrada)[0]
-    return f"Predicción del modelo: {'Aprobado' if pred == 1 else 'Reprobado'}"
+    return f"Predicción del modelo: {pred.upper()}"
 
-# Callback matriz de confusión
+# Callback de matriz de confusión
 @app.callback(
     Output("conf-matrix", "figure"),
     Input("btn-predict", "n_clicks")
 )
 def actualizar_matriz(n):
-    from sklearn.metrics import confusion_matrix
     y_pred = modelo.predict(X)
-    cm = confusion_matrix(y, y_pred)
+    etiquetas = sorted(y.unique())
+    cm = confusion_matrix(y, y_pred, labels=etiquetas)
+
     fig = go.Figure(data=go.Heatmap(
         z=cm,
-        x=["Reprobado", "Aprobado"],
-        y=["Reprobado", "Aprobado"],
+        x=etiquetas,
+        y=etiquetas,
         colorscale="Blues"
     ))
-    fig.update_layout(title="Matriz de Confusión")
+    fig.update_layout(title="Matriz de Confusión", xaxis_title="Predicción", yaxis_title="Valor Real")
     return fig
 
-# Ejecutar app
+# Ejecutar la aplicación
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 8050))
