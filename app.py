@@ -1,15 +1,17 @@
-import pandas as pd
 import joblib
-import dash
-from dash import html, dcc, Input, Output
-import plotly.express as px
-import plotly.graph_objects as go
-import numpy as np
-import pickle
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.pipeline import Pipeline
+from imblearn.pipeline import Pipeline as ImbPipeline
+from imblearn.over_sampling import SMOTE
 
-# Cargar modelo
-with open("modelo_entrenado.pkl", "rb") as f:
-    modelo = pickle.load(f)
+# Cargar el modelo correctamente
+modelo = joblib.load('student_performance_model.pkl')
+
 
 # Cargar dataset
 df = pd.read_csv("student_performance.csv")
