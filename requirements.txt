@@ -3,3 +3,5 @@ plotly
 pandas
 scikit-learn
 joblib
+numpy
+imblearn
