@@ -10,7 +10,7 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE
 
 # Cargar el modelo correctamente
-modelo = joblib.load('student_performance_model.pkl')
+modelo = joblib.load('student_performance.pkl')
 
 
 # Cargar dataset
