@@ -1,10 +1,11 @@
 import joblib
 import pandas as pd
 import dash
-from dash import html, dcc, Input, Output
+from dash import Dash, html, dcc, Input, Output
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.metrics import confusion_matrix
+import os
 
 # Cargar el modelo entrenado
 modelo = joblib.load("student_performance.joblib")
@@ -18,7 +19,7 @@ X = df[columnas_entrada]
 y = df["final_score"]
 
 # Inicializar app
-app = dash.Dash(__name__)
+app = Dash(__name__)
 app.title = "Predicción de Rendimiento Estudiantil"
 
 # Layout
@@ -66,7 +67,7 @@ def hacer_prediccion(n_clicks, *valores):
         return ""
     entrada = pd.DataFrame([valores], columns=columnas_entrada)
     pred = modelo.predict(entrada)[0]
-    return f"Predicción del modelo: {pred.upper()}"
+    return f"Predicción del modelo: {str(pred).upper()}"
 
 # Callback de matriz de confusión
 @app.callback(
@@ -89,6 +90,5 @@ def actualizar_matriz(n):
 
 # Ejecutar la aplicación
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 8050))
-    app.run_server(debug=False, host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 8050))  # Esto es lo que faltaba
+    app.run(debug=False, host="0.0.0.0", port=port)
